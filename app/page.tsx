@@ -1,65 +1,105 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+
+interface Author {
+  id: string
+  name: string
+  email: string
+  bio: string
+  nationality: string
+  birthYear: number
+  books: any[]
+}
 
 export default function Home() {
+  const [authors, setAuthors] = useState<Author[]>([])
+  const [loading, setLoading] = useState(true)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [nationality, setNationality] = useState('')
+  const [birthYear, setBirthYear] = useState('')
+  const [bio, setBio] = useState('')
+  const [message, setMessage] = useState('')
+
+  const fetchAuthors = async () => {
+    const res = await fetch('/api/authors')
+    const data = await res.json()
+    setAuthors(data)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchAuthors()
+  }, [])
+
+  const createAuthor = async () => {
+    const res = await fetch('/api/authors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, nationality, birthYear: parseInt(birthYear), bio }),
+    })
+    if (res.ok) {
+      setMessage('Autor creado correctamente')
+      setName(''); setEmail(''); setNationality(''); setBirthYear(''); setBio('')
+      fetchAuthors()
+    }
+  }
+
+  const deleteAuthor = async (id: string) => {
+    await fetch(`/api/authors/${id}`, { method: 'DELETE' })
+    fetchAuthors()
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="max-w-4xl mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-8">📚 Sistema de Biblioteca</h1>
+
+      <section className="bg-gray-100 p-6 rounded-lg mb-8">
+        <h2 className="text-xl font-semibold mb-4">Crear Autor</h2>
+        {message && <p className="text-green-600 mb-2">{message}</p>}
+        <div className="grid grid-cols-2 gap-4">
+          <input className="border p-2 rounded" placeholder="Nombre" value={name} onChange={e => setName(e.target.value)} />
+          <input className="border p-2 rounded" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+          <input className="border p-2 rounded" placeholder="Nacionalidad" value={nationality} onChange={e => setNationality(e.target.value)} />
+          <input className="border p-2 rounded" placeholder="Año de nacimiento" value={birthYear} onChange={e => setBirthYear(e.target.value)} />
+          <textarea className="border p-2 rounded col-span-2" placeholder="Biografía" value={bio} onChange={e => setBio(e.target.value)} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <button onClick={createAuthor} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+          Crear Autor
+        </button>
+      </section>
+
+      <section>
+        <h2 className="text-xl font-semibold mb-4">Lista de Autores</h2>
+        {loading ? <p>Cargando...</p> : (
+          <div className="grid gap-4">
+            {authors.map(author => (
+              <div key={author.id} className="border p-4 rounded-lg flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold text-lg">{author.name}</h3>
+                  <p className="text-gray-600">{author.nationality} · {author.birthYear}</p>
+                  <p className="text-gray-500 text-sm">{author.books?.length || 0} libros</p>
+                </div>
+                <div className="flex gap-2">
+                  <Link href={`/authors/${author.id}`} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Ver
+                  </Link>
+                  <button onClick={() => deleteAuthor(author.id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-6">
+          <Link href="/books" className="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700">
+            Ver Búsqueda de Libros
+          </Link>
         </div>
-      </main>
-    </div>
-  );
+      </section>
+    </main>
+  )
 }
